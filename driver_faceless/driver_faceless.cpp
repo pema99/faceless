@@ -57,7 +57,7 @@ inline void HmdMatrix34_Rotation(HmdMatrix34_t mat, double euler[3])
 	euler[2] = atan2(mat.m[1][0], mat.m[0][0]);
 }
 
-inline HmdQuaternion_t HmdMatrix34_FromQuat(const HmdMatrix34_t* matrix44m) {
+inline HmdQuaternion_t HmdMatrix34_ToQuat(const HmdMatrix34_t* matrix44m) {
 	const float* matrix44 = matrix44m->m[0];
 	float q[4];
 	// Algorithm from http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
@@ -333,7 +333,7 @@ public:
 			double euler[3];
 			//HmdMatrix34_Rotation(mat1, euler);
 			//pose.qRotation = HmdQuaternion_FromEuler(euler[0], euler[1], euler[2]);
-			pose.qRotation = HmdMatrix34_FromQuat(&mat1);
+			pose.qRotation = HmdMatrix34_ToQuat(&mat1);
 		}
 
 		return pose;
