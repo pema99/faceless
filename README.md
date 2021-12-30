@@ -12,4 +12,4 @@ To use this, you must open your `Steam/config/steamvr.vrsettings` file and set t
       "activateMultipleDrivers" : true
 }
 ```
-This will allow the driver used for the VR controllers to work concurrently with this driver.
+This will allow the driver used for the VR controllers to work concurrently with this driver. Finally, enable the driver in the Startup section of SteamVR settings.
