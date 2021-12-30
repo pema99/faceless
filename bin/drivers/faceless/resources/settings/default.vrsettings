@@ -1,0 +1,10 @@
+{
+  "driver_faceless": {
+    "enable": true,
+    "serialNumber": "Faceless Serial Number",
+    "modelNumber": "Faceless Model Number",
+    "renderWidth": 2048,
+    "renderHeight": 2048,
+    "displayFrequency": 0
+  }
+}
