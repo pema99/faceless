@@ -9,7 +9,7 @@ To build, open the solution is Visual Studio 2019 and build both 32 and 64 bit t
 To use this, you must open your `Steam/config/steamvr.vrsettings` file and set the "activateMultipleDrivers" key true under the "steamvr" sections:
 ```json
 "steamvr" : {
-      "activateMultipleDrivers" : true,
-      ...
+      "activateMultipleDrivers" : true
+}
 ```
 This will allow the driver used for the VR controllers to work concurrently with this driver.
