@@ -1,0 +1,7 @@
+﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(499,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
+  feeder_faceless.cpp
+  Generating code
+  Previous IPDB and IOBJ mismatch, fall back to full compilation.
+  All 60 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Finished generating code
+  feeder_faceless.vcxproj -> C:\Users\Pema Malling\source\repos\faceless\bin\feeder\feeder_faceless.exe

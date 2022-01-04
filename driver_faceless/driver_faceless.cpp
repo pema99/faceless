@@ -36,10 +36,17 @@ inline HmdQuaternion_t HmdQuaternion_Init( double w, double x, double y, double 
 inline HmdQuaternion_t HmdQuaternion_FromEuler(double roll, double pitch, double yaw)
 {
 	HmdQuaternion_t quat;
-	quat.x = sin(roll / 2) * cos(pitch / 2) * cos(yaw / 2) - cos(roll / 2) * sin(pitch / 2) * sin(yaw / 2);
-	quat.y = cos(roll / 2) * sin(pitch / 2) * cos(yaw / 2) + sin(roll / 2) * cos(pitch / 2) * sin(yaw / 2);
-	quat.z = cos(roll / 2) * cos(pitch / 2) * sin(yaw / 2) - sin(roll / 2) * sin(pitch / 2) * cos(yaw / 2);
-	quat.w = cos(roll / 2) * cos(pitch / 2) * cos(yaw / 2) + sin(roll / 2) * sin(pitch / 2) * sin(yaw / 2);
+	double cy = cos(yaw * 0.5);
+	double sy = sin(yaw * 0.5);
+	double cp = cos(pitch * 0.5);
+	double sp = sin(pitch * 0.5);
+	double cr = cos(roll * 0.5);
+	double sr = sin(roll * 0.5);
+
+	quat.w = cr * cp * cy + sr * sp * sy;
+	quat.x = sr * cp * cy - cr * sp * sy;
+	quat.y = cr * sp * cy + sr * cp * sy;
+	quat.z = cr * cp * sy - sr * sp * cy;
 	return quat;
 }
 
@@ -268,10 +275,10 @@ public:
 
 	virtual void GetProjectionRaw( EVREye eEye, float *pfLeft, float *pfRight, float *pfTop, float *pfBottom ) 
 	{
-		*pfLeft = -1.0;
-		*pfRight = 1.0;
-		*pfTop = -1.0;
-		*pfBottom = 1.0;	
+		*pfLeft = -m_fov[0];
+		*pfRight = m_fov[0];
+		*pfTop = -m_fov[1];
+		*pfBottom = m_fov[1];	
 	}
 
 	virtual DistortionCoordinates_t ComputeDistortion( EVREye eEye, float fU, float fV ) 
@@ -325,15 +332,23 @@ public:
 			double pos1[3], pos2[3];
 			HmdMatrix34_Translation(mat1, pos1);
 			HmdMatrix34_Translation(mat2, pos2);
-			pose.vecPosition[0] = 0.5 * (pos1[0] + pos2[0]);
-			pose.vecPosition[1] = 0.5 * (pos1[1] + pos2[1]) + 0.3;
-			pose.vecPosition[2] = 0.5 * (pos1[2] + pos2[2]);
+			pose.vecPosition[0] = m_posOffset[0];// 0.5 * (pos1[0] + pos2[0]);
+			pose.vecPosition[1] = m_posOffset[1];//0.5 * (pos1[1] + pos2[1]) + 0.3;
+			pose.vecPosition[2] = m_posOffset[2];// 0.5 * (pos1[2] + pos2[2]);
 
 			// guess rotation
-			double euler[3];
-			//HmdMatrix34_Rotation(mat1, euler);
-			//pose.qRotation = HmdQuaternion_FromEuler(euler[0], euler[1], euler[2]);
-			pose.qRotation = HmdMatrix34_ToQuat(&mat1);
+			double euler1[3], euler2[3];
+			HmdMatrix34_Rotation(mat1, euler1);
+			HmdMatrix34_Rotation(mat2, euler2);
+			pose.qRotation = HmdQuaternion_FromEuler(0, m_rotOffset, 0);
+			//pose.qRotation = HmdMatrix34_ToQuat(&mat1);
+
+			// Calibration
+			if (GetAsyncKeyState(VK_HOME))
+			{
+				m_posOffset[0] = 0.5 * (pos1[0] + pos2[0]);
+				m_posOffset[2] = 0.5 * (pos1[2] + pos2[2]);
+			}
 		}
 
 		return pose;
@@ -345,6 +360,15 @@ public:
 		{
 			vr::VRServerDriverHost()->TrackedDevicePoseUpdated( m_unObjectId, GetPose(), sizeof( DriverPose_t ) );
 		}
+
+		if (GetAsyncKeyState(VK_RIGHT)) m_rotOffset += 0.01;
+		if (GetAsyncKeyState(VK_LEFT))  m_rotOffset -= 0.01;
+		if (GetAsyncKeyState(VK_UP))    m_posOffset[1] += 0.01;
+		if (GetAsyncKeyState(VK_DOWN))  m_posOffset[1] -= 0.01;
+		if (GetAsyncKeyState(VK_NUMPAD6)) m_fov[0] += 0.01;
+		if (GetAsyncKeyState(VK_NUMPAD4)) m_fov[0] -= 0.01;
+		if (GetAsyncKeyState(VK_NUMPAD8)) m_fov[1] += 0.01;
+		if (GetAsyncKeyState(VK_NUMPAD2)) m_fov[1] -= 0.01;
 	}
 
 	std::string GetSerialNumber() const { return m_sSerialNumber; }
@@ -360,6 +384,10 @@ private:
 	int32_t m_nRenderHeight;
 	float m_flDisplayFrequency;
 	float m_flIPD;
+
+	float m_rotOffset = 0.0;
+	float m_posOffset[3] = { 0, 0.7, 0 };
+	float m_fov[2] = { 1, 1 };
 };
 
 // --- Driver provider ---

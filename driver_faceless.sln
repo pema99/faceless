@@ -5,6 +5,8 @@ VisualStudioVersion = 16.0.31911.196
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "driver_faceless", "driver_faceless\driver_faceless.vcxproj", "{537AB1C9-02FC-4224-8820-363B5D1C6616}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "feeder_faceless", "feeder_faceless\feeder_faceless.vcxproj", "{70590E9B-A812-4984-AFE6-505022115DD7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -21,6 +23,14 @@ Global
 		{537AB1C9-02FC-4224-8820-363B5D1C6616}.Release|Win32.Build.0 = Release|Win32
 		{537AB1C9-02FC-4224-8820-363B5D1C6616}.Release|x64.ActiveCfg = Release|x64
 		{537AB1C9-02FC-4224-8820-363B5D1C6616}.Release|x64.Build.0 = Release|x64
+		{70590E9B-A812-4984-AFE6-505022115DD7}.Debug|Win32.ActiveCfg = Debug|Win32
+		{70590E9B-A812-4984-AFE6-505022115DD7}.Debug|Win32.Build.0 = Debug|Win32
+		{70590E9B-A812-4984-AFE6-505022115DD7}.Debug|x64.ActiveCfg = Debug|x64
+		{70590E9B-A812-4984-AFE6-505022115DD7}.Debug|x64.Build.0 = Debug|x64
+		{70590E9B-A812-4984-AFE6-505022115DD7}.Release|Win32.ActiveCfg = Release|Win32
+		{70590E9B-A812-4984-AFE6-505022115DD7}.Release|Win32.Build.0 = Release|Win32
+		{70590E9B-A812-4984-AFE6-505022115DD7}.Release|x64.ActiveCfg = Release|x64
+		{70590E9B-A812-4984-AFE6-505022115DD7}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
