@@ -28,6 +28,7 @@ To use this in practice, first calibrate using room setup like you would normall
 | `Home`+`S`      | Adjust pitch                           |
 | `Home`+`End`    | Save orientation to config file        |
 | `Home`+`Delete` | Reset orientation to default settings  |
+
 Saving the orientation will cause it to be loaded automatically next time the driver is started.
 
 Playspace mover is strongly recommended to adjust your height/position.
