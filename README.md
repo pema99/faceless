@@ -32,3 +32,6 @@ To use this in practice, first calibrate using room setup like you would normall
 Saving the orientation will cause it to be loaded automatically next time the driver is started.
 
 Playspace mover is strongly recommended to adjust your height/position.
+
+# Using only controllers
+The original intent of the driver was to use only controllers, with no HMD or trackers. This is currently supported, but is a not very usefull work in progress. Currently, the orientation of the head is just bound to the orientation of one hand. To use in this mode, just install the driver and connect controllers.
