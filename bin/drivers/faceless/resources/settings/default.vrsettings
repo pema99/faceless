@@ -6,6 +6,8 @@
     "renderWidth": 2048,
     "renderHeight": 2048,
     "displayFrequency": 0,
+    "verticalFOV": 2.0,
+    "horizontalFOV": 2.0,
     "useTracker": true
   }
 }

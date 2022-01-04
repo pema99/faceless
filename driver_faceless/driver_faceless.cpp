@@ -138,6 +138,8 @@ static const char * const k_pch_Faceless_ModelNumber_String = "modelNumber";
 static const char * const k_pch_Faceless_RenderWidth_Int32 = "renderWidth";
 static const char * const k_pch_Faceless_RenderHeight_Int32 = "renderHeight";
 static const char * const k_pch_Faceless_DisplayFrequency_Float = "displayFrequency";
+static const char* const k_pch_Faceless_VFOV_Float = "verticalFOV";
+static const char* const k_pch_Faceless_HFOV_Float = "horizontalFOV";
 static const char * const k_pch_Faceless_UseTracker_Bool = "useTracker";
 
 //-----------------------------------------------------------------------------
@@ -165,6 +167,9 @@ public:
 		m_nRenderHeight = vr::VRSettings()->GetInt32(k_pch_Faceless_Section, k_pch_Faceless_RenderHeight_Int32);
 		m_flDisplayFrequency = vr::VRSettings()->GetFloat(k_pch_Faceless_Section, k_pch_Faceless_DisplayFrequency_Float);
 
+		m_VFOV = vr::VRSettings()->GetFloat(k_pch_Faceless_Section, k_pch_Faceless_VFOV_Float);
+		m_HFOV = vr::VRSettings()->GetFloat(k_pch_Faceless_Section, k_pch_Faceless_HFOV_Float);
+
 		m_useTracker = vr::VRSettings()->GetBool(k_pch_Faceless_Section, k_pch_Faceless_UseTracker_Bool);
 
 		DriverLog( "driver_faceless: Serial Number: %s\n", m_sSerialNumber.c_str() );
@@ -172,6 +177,8 @@ public:
 		DriverLog( "driver_faceless: Render Target: %d %d\n", m_nRenderWidth, m_nRenderHeight );
 		DriverLog( "driver_faceless: Display Frequency: %f\n", m_flDisplayFrequency );
 		DriverLog( "driver_faceless: IPD: %f\n", m_flIPD );
+		DriverLog( "driver_faceless: VFOV: %f\n", m_VFOV);
+		DriverLog( "driver_faceless: HFOV: %f\n", m_HFOV);
 	}
 
 	virtual ~CFacelessDeviceDriver()
@@ -289,10 +296,10 @@ public:
 
 	virtual void GetProjectionRaw( EVREye eEye, float *pfLeft, float *pfRight, float *pfTop, float *pfBottom ) 
 	{
-		*pfLeft = -1.0;
-		*pfRight = 1.0;
-		*pfTop = -1.0;
-		*pfBottom = 1.0;	
+		*pfLeft = -m_HFOV;
+		*pfRight = m_HFOV;
+		*pfTop = -m_VFOV;
+		*pfBottom = m_VFOV;
 	}
 
 	virtual DistortionCoordinates_t ComputeDistortion( EVREye eEye, float fU, float fV ) 
@@ -471,6 +478,8 @@ private:
 	int32_t m_nRenderHeight;
 	float m_flDisplayFrequency;
 	float m_flIPD;
+	float m_VFOV;
+	float m_HFOV;
 
 	bool m_useTracker;
 	float m_trackerOffset[3] = { -90, 0, 0 };
