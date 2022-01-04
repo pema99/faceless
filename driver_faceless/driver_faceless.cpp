@@ -4,6 +4,12 @@
 #include <vector>
 #include <thread>
 #include <chrono>
+#include <stdlib.h>
+#include <stdio.h>
+#include <shlobj_core.h>
+#include <direct.h>
+#include <iostream>
+#include <fstream>
 
 #if defined( _WINDOWS )
 #include <windows.h>
@@ -30,6 +36,16 @@ inline HmdQuaternion_t HmdQuaternion_Init( double w, double x, double y, double 
 	quat.x = x;
 	quat.y = y;
 	quat.z = z;
+	return quat;
+}
+
+inline HmdQuaternion_t HmdQuaternion_Mul(HmdQuaternion_t q1, HmdQuaternion_t q2)
+{
+	HmdQuaternion_t quat;
+	quat.x =  q1.x * q2.w + q1.y * q2.z - q1.z * q2.y + q1.w * q2.x;
+	quat.y = -q1.x * q2.z + q1.y * q2.w + q1.z * q2.x + q1.w * q2.y;
+	quat.z =  q1.x * q2.y - q1.y * q2.x + q1.z * q2.w + q1.w * q2.z;
+	quat.w = -q1.x * q2.x - q1.y * q2.y - q1.z * q2.z + q1.w * q2.w;
 	return quat;
 }
 
@@ -122,6 +138,7 @@ static const char * const k_pch_Faceless_ModelNumber_String = "modelNumber";
 static const char * const k_pch_Faceless_RenderWidth_Int32 = "renderWidth";
 static const char * const k_pch_Faceless_RenderHeight_Int32 = "renderHeight";
 static const char * const k_pch_Faceless_DisplayFrequency_Float = "displayFrequency";
+static const char * const k_pch_Faceless_UseTracker_Bool = "useTracker";
 
 //-----------------------------------------------------------------------------
 // Purpose:
@@ -147,6 +164,8 @@ public:
 		m_nRenderWidth = vr::VRSettings()->GetInt32(k_pch_Faceless_Section, k_pch_Faceless_RenderWidth_Int32);
 		m_nRenderHeight = vr::VRSettings()->GetInt32(k_pch_Faceless_Section, k_pch_Faceless_RenderHeight_Int32);
 		m_flDisplayFrequency = vr::VRSettings()->GetFloat(k_pch_Faceless_Section, k_pch_Faceless_DisplayFrequency_Float);
+
+		m_useTracker = vr::VRSettings()->GetBool(k_pch_Faceless_Section, k_pch_Faceless_UseTracker_Bool);
 
 		DriverLog( "driver_faceless: Serial Number: %s\n", m_sSerialNumber.c_str() );
 		DriverLog( "driver_faceless: Model Number: %s\n", m_sModelNumber.c_str() );
@@ -189,6 +208,8 @@ public:
 
 		// avoid "not fullscreen" warnings from vrmonitor
 		vr::VRProperties()->SetBoolProperty( m_ulPropertyContainer, Prop_IsOnDesktop_Bool, false );
+
+		LoadConfig();
 
 		return VRInitError_None;
 	}
@@ -297,8 +318,9 @@ public:
 		pose.qWorldFromDriverRotation = HmdQuaternion_Init(1, 0, 0, 0);
 		pose.qDriverFromHeadRotation = HmdQuaternion_Init(1, 0, 0, 0);
 		
-		// Find 2 controllers
-		std::vector<uint32_t> idx;
+		// Find 2 controllers and possibly a tracker
+		std::vector<uint32_t> controllers;
+		std::vector<uint32_t> trackers;
 		vr::CVRPropertyHelpers* props = vr::VRProperties();
 		for (uint32_t i = 0; i < vr::k_unMaxTrackedDeviceCount; i++)
 		{
@@ -307,19 +329,42 @@ public:
 			int32_t deviceClass = props->GetInt32Property(container, vr::ETrackedDeviceProperty::Prop_DeviceClass_Int32, &err);
 			if (deviceClass == vr::ETrackedDeviceClass::TrackedDeviceClass_Controller)
 			{
-				idx.push_back(i);
+				controllers.push_back(i);
+			}
+			else if (deviceClass == vr::ETrackedDeviceClass::TrackedDeviceClass_GenericTracker)
+			{
+				trackers.push_back(i);
 			}
 		}
 
 		// Get controller poses
-		TrackedDevicePose_t hmdPose[k_unMaxTrackedDeviceCount];
-		VRServerDriverHost()->GetRawTrackedDevicePoses(0, hmdPose, k_unMaxTrackedDeviceCount);
+		TrackedDevicePose_t poses[k_unMaxTrackedDeviceCount];
+		VRServerDriverHost()->GetRawTrackedDevicePoses(0, poses, k_unMaxTrackedDeviceCount);
 
-		// If valid pose
-		if (idx.size() >= 2)
+		// If head tracker present
+		if (m_useTracker && trackers.size() > 0)
 		{
-			HmdMatrix34_t mat1 = hmdPose[idx[0]].mDeviceToAbsoluteTracking;
-			HmdMatrix34_t mat2 = hmdPose[idx[1]].mDeviceToAbsoluteTracking;
+			HmdMatrix34_t mat = poses[trackers[0]].mDeviceToAbsoluteTracking;
+
+			// set head position from tracker
+			double pos[3];
+			HmdMatrix34_Translation(mat, pos);
+			pose.vecPosition[0] = pos[0];
+			pose.vecPosition[1] = pos[1];
+			pose.vecPosition[2] = pos[2];
+
+			// set head rotation from tracker
+			double euler[3];
+			HmdMatrix34_Rotation(mat, euler);
+
+			pose.qRotation = HmdMatrix34_ToQuat(&mat);
+			pose.qRotation = HmdQuaternion_Mul(pose.qRotation, HmdQuaternion_FromEuler(m_trackerOffset[0], m_trackerOffset[1], m_trackerOffset[2])); // up is forward for trackers
+		}
+		// If controllers present
+		else if (controllers.size() >= 2)
+		{
+			HmdMatrix34_t mat1 = poses[controllers[0]].mDeviceToAbsoluteTracking;
+			HmdMatrix34_t mat2 = poses[controllers[1]].mDeviceToAbsoluteTracking;
 			
 			// get average controller position
 			double pos1[3], pos2[3];
@@ -330,7 +375,7 @@ public:
 			pose.vecPosition[2] = 0.5 * (pos1[2] + pos2[2]);
 
 			// guess rotation
-			double euler[3];
+			//double euler[3];
 			//HmdMatrix34_Rotation(mat1, euler);
 			//pose.qRotation = HmdQuaternion_FromEuler(euler[0], euler[1], euler[2]);
 			pose.qRotation = HmdMatrix34_ToQuat(&mat1);
@@ -343,8 +388,74 @@ public:
 	{
 		if ( m_unObjectId != vr::k_unTrackedDeviceIndexInvalid )
 		{
+			// Calibration
+			if (GetAsyncKeyState(VK_HOME))
+			{
+				if (GetAsyncKeyState('W')) m_trackerOffset[0] += 0.01;
+				if (GetAsyncKeyState('S')) m_trackerOffset[0] -= 0.01;
+				if (GetAsyncKeyState('Q')) m_trackerOffset[1] += 0.01;
+				if (GetAsyncKeyState('E')) m_trackerOffset[1] -= 0.01;
+				if (GetAsyncKeyState('D')) m_trackerOffset[2] += 0.01;
+				if (GetAsyncKeyState('A')) m_trackerOffset[2] -= 0.01;
+				if (GetAsyncKeyState(VK_END)) SaveConfig();
+				if (GetAsyncKeyState(VK_DELETE)) ResetConfig();
+			}
+
 			vr::VRServerDriverHost()->TrackedDevicePoseUpdated( m_unObjectId, GetPose(), sizeof( DriverPose_t ) );
 		}
+	}
+
+	void SaveConfig()
+	{
+		// Get appdata
+		char appdata[MAX_PATH];
+		if (!SHGetSpecialFolderPathA(NULL, appdata, CSIDL_APPDATA, 0)) return;
+
+		// Make directory if not exists
+		std::string path(appdata);
+		path.append("\\faceless\\");
+		_mkdir(path.c_str());
+		path.append("settings.bin");
+
+		// Make file if not exists (yuck)
+		std::ofstream out;
+		out.open(path, std::ios::out);
+		out.close();
+
+		// Write settings
+		out.open(path, std::ios_base::binary | std::ios::out | std::ios::trunc);
+		if (!out.good()) return;
+		out.write((const char*)&(m_trackerOffset[0]), sizeof(float));
+		out.write((const char*)&(m_trackerOffset[1]), sizeof(float));
+		out.write((const char*)&(m_trackerOffset[2]), sizeof(float));
+		out.close();
+	}
+
+	void LoadConfig()
+	{
+		// Get appdata
+		char appdata[MAX_PATH];
+		if (!SHGetSpecialFolderPathA(NULL, appdata, CSIDL_APPDATA, 0)) return;
+
+		// Get path
+		std::string path(appdata);
+		path.append("\\faceless\\settings.bin");
+
+		// Read settings
+		std::ifstream in(path, std::ios_base::binary);
+		if (!in.good()) return;
+		in.read((char*)&(m_trackerOffset[0]), sizeof(float));
+		in.read((char*)&(m_trackerOffset[1]), sizeof(float));
+		in.read((char*)&(m_trackerOffset[2]), sizeof(float));
+		in.close();
+	}
+
+	void ResetConfig()
+	{
+		m_trackerOffset[0] = -90;
+		m_trackerOffset[1] = 0;
+		m_trackerOffset[2] = 0;
+		SaveConfig();
 	}
 
 	std::string GetSerialNumber() const { return m_sSerialNumber; }
@@ -360,6 +471,9 @@ private:
 	int32_t m_nRenderHeight;
 	float m_flDisplayFrequency;
 	float m_flIPD;
+
+	bool m_useTracker;
+	float m_trackerOffset[3] = { -90, 0, 0 };
 };
 
 // --- Driver provider ---
